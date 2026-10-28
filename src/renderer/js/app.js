@@ -1,4 +1,4 @@
-import { Capri } from './capri.js';
+import { Capri, GAME_SHRINK } from './capri.js';
 import { FxLayer, GRAB_FRAMES } from './fx.js';
 import { Chip, Mask } from './chip.js';
 import { Panel } from './panel.js';
@@ -90,6 +90,7 @@ async function boot() {
   if (skin.recolor === false) capri.p.grade = 0;
   capri.setView(innerWidth, innerHeight, innerHeight - floorGap);
   capri.setScale(config.scale);
+  capri.userScale = config.scale; // the size you picked (smaller than that while you're in a game)
 
   // Ty Live (live.js): her lines and faces go to its viewers too, and while someone watches her video,
   // where she is on the overlay (main.js crops her out of it)
@@ -394,7 +395,10 @@ async function boot() {
     brain.custom = mine(cfg);
     brain.assistant = cfg.assistant;
     panel.labels = linesFor(cfg.lang, cfg.assistant);
-    if (cfg.scale !== capri.scale) capri.setScale(cfg.scale);
+    if (cfg.scale !== capri.userScale) {
+      capri.userScale = cfg.scale;
+      capri.setScale(cfg.scale * (capri.gaming ? GAME_SHRINK : 1));
+    }
     if (cfg.lang !== brain.lang) {
       brain.lang = cfg.lang;
       panel.labels = linesFor(cfg.lang, cfg.assistant);
@@ -462,6 +466,8 @@ async function boot() {
         const was = chat.gaming;
         chat.gaming = cmd.on;
         capri.setGaming(cmd.on);
+        panel.shrink = cmd.on ? 0.72 : 1; // her message box smaller over a game
+        panel.place();
         if (cmd.on && !was) {
           const g = cmd.game;
           const line = g

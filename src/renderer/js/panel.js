@@ -570,8 +570,11 @@ export class Panel {
     const towardLeft = lean ? lean < 0 : x > w / 2;
 
     if (!this.el.hidden) {
-      const pw = this.el.offsetWidth;
-      const ph = this.el.offsetHeight;
+      // shrink: smaller while you're in a game (app.js), scaled from its top left corner
+      const k = this.shrink || 1;
+      this.el.style.transformOrigin = '0 0';
+      const pw = this.el.offsetWidth * k;
+      const ph = this.el.offsetHeight * k;
       let left = towardLeft ? x - pw + 46 : x - 46;
       left = clamp(left, margin, w - pw - margin);
       let top = crown - ph + 14;
@@ -581,8 +584,8 @@ export class Panel {
         below = true;
       }
       if (this.view.h) top = clamp(top, margin, this.view.h - ph - margin); // a tall one (an answer) stays on screen
-      this.el.style.transform = `translate3d(${Math.round(left)}px, ${Math.round(top)}px, 0)`;
-      this.el.style.setProperty('--tail-x', `${clamp(x - left, 24, pw - 24)}px`);
+      this.el.style.transform = `translate3d(${Math.round(left)}px, ${Math.round(top)}px, 0)${k !== 1 ? ` scale(${k})` : ''}`;
+      this.el.style.setProperty('--tail-x', `${clamp((x - left) / k, 24, pw / k - 24)}px`);
       this.el.dataset.below = below ? 'true' : 'false';
     }
 

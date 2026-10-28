@@ -9,6 +9,8 @@ import { SpriteRenderer, SPRITE } from './sprite.js';
 import { ACTS, NEUTRAL, Player } from './acting.js';
 import { sleep, rand, pick, clamp, lerp, ease, tween, reducedMotion, today } from './util.js';
 
+export const GAME_SHRINK = 0.65; // her size while you're in a game
+
 const ON_TWOS = 1000 / 12;
 const ON_ONES = 1000 / 24;
 const ASLEEP = 1000 / 6;
@@ -292,24 +294,25 @@ export class Capri {
   }
 
   // A game came on (or went): off to her spot by the clock, out of your way, or back to her usual.
+  // In a game she's smaller too (GAME_SHRINK of the size you picked, userScale).
   setGaming(on) {
     if (this.gaming === on) return;
     this.gaming = on;
     this.nextHome = 0;
-    if (on && !this.busy && this.mode === 'idle') {
-      if (this.stance === 'peek') this.unpeek();
-      else this.goHome();
-    }
+    this.setScale((this.userScale || this.scale) * (on ? GAME_SHRINK : 1));
+    if (this.busy) return;
+    if (on && this.mode === 'idle') this.goHome();
+    else if (!on && this.stance === 'peek') this.unpeek();
   }
 
   // Back to where she rests: her corner, sitting on the taskbar below it, or up on one of your windows.
   goHome() {
     const post = this.spot('post');
     if (this.gaming) {
-      // in a game: on the taskbar right by the clock, the far end from the game's middle
-      const dx = this.view.w - 130 * this.scale; // (her mane reaches past her feet: all of her stays on screen)
-      if (this.stance === 'sit' && this.perch?.id === 'taskbar' && Math.abs(this.perch.dx - dx) < 40) return Promise.resolve();
-      return this.sitOn({ win: this.ledge(), dx });
+      // in a game: peeking in from the bottom right corner, by the clock, out of your way
+      if (this.stance === 'peek' && this.peekSide === 'corner') return Promise.resolve();
+      if (this.stance === 'peek') return this.unpeek(); // (and from there, to the corner)
+      return this.peek('corner');
     }
     if (this.restOn === 'perch') {
       if (this.stance === 'sit') return Promise.resolve();
@@ -1314,8 +1317,9 @@ export class Capri {
       dir = 1;
       at = { x: 14 * s, y };
       from = { x: -170 * s, y };
-    } else if (side === 'right') {
-      const y = rand(h * 0.55, this.floor);
+    } else if (side === 'right' || side === 'corner') {
+      // the corner: the bottom right, where she peeks from while you're in a game
+      const y = side === 'corner' ? this.floor : rand(h * 0.55, this.floor);
       facing = 1;
       dir = -1;
       at = { x: w - 14 * s, y };
@@ -1351,7 +1355,7 @@ export class Capri {
       }
     }
     this.peekFrom = from;
-    this.peekUntil = performance.now() + (this.restOn === 'hang' ? rand(30000, 70000) : rand(15000, 40000));
+    this.peekUntil = side === 'corner' ? Infinity : performance.now() + (this.restOn === 'hang' ? rand(30000, 70000) : rand(15000, 40000));
     this.busy = false;
     this.onTeleport?.('end');
   }
@@ -1688,6 +1692,7 @@ export class Capri {
   // When the pointer comes close she turns around to face it and cocks her head;
   // if she's peeking, she's shy and ducks away.
   notice(x, y) {
+    if (this.gaming) return;
     if (this.busy || this.hidden || this.stance === 'fall' || this.sky) return; // the satellite has all her attention
     const h = this.head();
     if (Math.hypot(x - h.x, y - h.y) > 230) return;
