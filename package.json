@@ -2,8 +2,8 @@
   "name": "ty-desktop",
   "version": "0.7.1",
   "description": "Ty, a personal AI that runs locally and lives on your desktop.",
-  "author": "mochiiwuff",
-  "repository": "github:mochiiwuff/capri-desktop",
+  "author": "an4rchuk (fork of mochiiwuff/capri-desktop)",
+  "repository": "github:an4rchuk/ty-desktop",
   "main": "src/main/main.js",
   "private": true,
   "scripts": {
