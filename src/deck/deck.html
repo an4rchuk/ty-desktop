@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'">
+  <title>Ty - Deck</title>
+  <link rel="stylesheet" href="deck.css">
+</head>
+<body>
+  <header class="top">
+    <div>
+      <h1 class="top__title">TY <span class="red">//</span> <span class="red">DECK</span></h1>
+      <p class="top__sub">&#9666; COMPANION OS &nbsp;<span class="version"></span></p>
+      <span class="top__bar" aria-hidden="true"></span>
+    </div>
+    <div class="chips"></div>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button role="tab" data-tab="apps">01 // APPS</button>
+    <button role="tab" data-tab="found">02 // FOUND ON THIS PC</button>
+    <button role="tab" data-tab="character">03 // CHARACTER</button>
+    <button role="tab" data-tab="assistant">04 // ASSISTANT</button>
+    <button role="tab" data-tab="pc">05 // PC &amp; CHAT</button>
+  </nav>
+
+  <main class="pages">
+    <!-- 01 apps -->
+    <section class="page" data-page="apps">
+      <p class="hint">Apps Ty opens by name. “Also say” = other names for it, comma separated (e.g. blocks strap). Paths can use %LOCALAPPDATA% and friends, or be a Steam game id or a link. Apps not listed here still work if they're Steam/Epic games or in your Start menu.</p>
+      <div class="table-wrap">
+        <table class="apps">
+          <thead><tr><th>Name</th><th>Also say</th><th>Path / Steam id / link</th><th>Arguments</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="row">
+        <button class="btn" data-do="add">Add app</button>
+        <button class="btn" data-do="browse">Browse for program…</button>
+        <span class="grow"></span>
+        <button class="btn btn--hot" data-do="save-apps">Save</button>
+      </div>
+      <div class="row">
+        <label class="label" for="try">Try a command:</label>
+        <input id="try" class="input grow" placeholder="e.g. open blocks strap">
+      </div>
+      <p class="try-out mono">Type what you'd say. This only shows what would happen; nothing runs.</p>
+    </section>
+
+    <!-- 02 found -->
+    <section class="page" data-page="found">
+      <p class="hint">Ty can open these without any setup. Just tell her “open &lt;name&gt;”.</p>
+      <ul class="found mono"></ul>
+      <div class="row"><button class="btn" data-do="rescan">Rescan</button><span class="found-count mono"></span></div>
+    </section>
+
+    <!-- 03 character -->
+    <section class="page" data-page="character">
+      <fieldset class="group">
+        <legend>Skin (her art)</legend>
+        <p class="hint">Swap her drawings for your own. “New skin from Capri” makes a folder with copies of every picture to draw over (Krita, Photoshop, Aseprite…), with a README of the sizes. Any picture you don't replace stays Capri's. Pick it here and she reloads in it.</p>
+        <label class="field"><span>Skin</span><select class="input" data-key="skin"></select></label>
+        <div class="row">
+          <input class="input" id="skin-name" placeholder="name, e.g. Ty masc" maxlength="40">
+          <button class="btn" data-do="new-skin">New skin from Capri</button>
+          <button class="btn" data-do="open-skins">Open skins folder</button>
+        </div>
+        <p class="hint skin-out"></p>
+      </fieldset>
+      <fieldset class="group">
+        <legend>Look</legend>
+        <label class="field"><span>Size</span>
+          <select class="input" data-key="scale" data-num>
+            <option value="0.45">Compact</option><option value="0.6">Normal</option><option value="0.8">Big</option>
+          </select>
+        </label>
+        <label class="field"><span>Animations</span>
+          <select class="input" data-key="motion">
+            <option value="auto">Like Windows</option><option value="full">Full</option><option value="reduced">Reduced</option>
+          </select>
+        </label>
+        <label class="field"><span>When she rests</span>
+          <select class="input" data-key="rest">
+            <option value="perch">On your windows (hops between them)</option><option value="corner">In her corner</option><option value="taskbar">Sitting on the taskbar</option>
+          </select>
+        </label>
+      </fieldset>
+      <fieldset class="group">
+        <legend>What she does on her own</legend>
+        <label class="check"><input type="checkbox" data-key="wander"> Wander around when idle (teleports, peeking from the edges)</label>
+        <label class="check"><input type="checkbox" data-key="possess"> Possess my windows now and then (just a visual, nothing is read)</label>
+        <label class="check"><input type="checkbox" data-key="muted" data-invert> Sounds</label>
+      </fieldset>
+      <p class="hint">Do something on demand: right-click Ty › Do something (spin, hop, victory pose, lightning, split, teleport).</p>
+    </section>
+
+    <!-- 04 assistant -->
+    <section class="page" data-page="assistant">
+      <fieldset class="group">
+        <legend>Her brain</legend>
+        <label class="field"><span>AI model</span><select class="input" data-key="chatModel"></select></label>
+        <p class="hint">Auto: Qwen3 8B does all the talking, thinking and doing. When she looks at your screen, a tiny 2B vision model (her eyes, ~2 GB) reads it first and she answers about it. Everything runs on this PC.</p>
+        <label class="field"><span>What she calls you</span><input class="input" data-key="userName" placeholder="your name"></label>
+        <label class="field field--tall"><span>How she is</span><textarea class="input" data-key="persona" rows="3" placeholder="in your own words: roast me harder, talk more about JoJo…"></textarea></label>
+        <label class="field"><span>Chat window skin</span>
+          <select class="input" data-key="chatSkin">
+            <option value="holocall">Holocall</option><option value="netrunner">Netrunner</option><option value="neon">Neon</option>
+            <option value="braindance">Braindance</option><option value="an4rch">AN4RCH</option>
+          </select>
+        </label>
+        <div class="row"><button class="btn" data-do="open-chat">Open chat window</button></div>
+      </fieldset>
+      <fieldset class="group">
+        <legend>Weather</legend>
+        <label class="field"><span>Home city</span><input class="input" data-key="weatherCity" placeholder="e.g. Manchester"></label>
+        <label class="field"><span>Units</span>
+          <select class="input" data-key="weatherUnits"><option value="metric">Celsius, km/h</option><option value="imperial">Fahrenheit, mph</option></select>
+        </label>
+        <div class="row"><button class="btn" data-do="weather">Test weather</button><span class="weather-out mono grow">Free, from Open-Meteo. Only the city name is sent.</span></div>
+      </fieldset>
+    </section>
+
+    <!-- 05 pc & chat -->
+    <section class="page" data-page="pc">
+      <fieldset class="group">
+        <legend>When you sign in</legend>
+        <label class="check"><input type="checkbox" data-key="greet"> Greet me when I unlock or wake the PC</label>
+        <label class="check"><input type="checkbox" data-key="greetBig"> Big, grabbing the screen (then back to her corner)</label>
+        <label class="check"><input type="checkbox" data-startup> Start Ty with Windows</label>
+        <div class="row"><button class="btn btn--wide" data-do="greet">Preview greeting</button></div>
+      </fieldset>
+      <fieldset class="group">
+        <legend>Game mode</legend>
+        <p class="hint">When a game's in front for a few seconds (anything from Steam, Epic, Riot, Xbox, Roblox, Minecraft…, or any fullscreen app that isn't a browser), her big model leaves your GPU and a tiny Qwen3 1.7B answers from the CPU instead: 0 VRAM. Plain commands (open, close, music, mute, timers, “move spotify to my samsung”) skip the AI completely and happen instantly. Back to normal 40 seconds after you leave the game. Only on Auto.</p>
+        <label class="check"><input type="checkbox" data-key="gameMode"> Game mode when I'm gaming</label>
+      </fieldset>
+      <fieldset class="group">
+        <legend>Moving windows</legend>
+        <p class="hint">“move spotify to my samsung”, “put discord on monitor 2”, “chuck chrome on the other screen”, “send it to the main monitor”. Monitor 1 is your main one. Keeps its place and its share of the screen, maximised again if it was.</p>
+      </fieldset>
+      <fieldset class="group">
+        <legend>Watching your screen</legend>
+        <p class="hint">Every few minutes she looks at your screen and says one thing about it: a roast, a hype, a tip. Her eyes are a tiny 2B vision model, and nothing is saved. Also: “watch my screen” / “stop watching my screen”.</p>
+        <label class="check"><input type="checkbox" data-key="watch" data-optin> Watch my screen and comment</label>
+        <label class="field"><span>How often</span>
+          <select class="input" data-key="watchEvery" data-num>
+            <option value="2">every 2 minutes</option><option value="5">every 5 minutes</option><option value="10">every 10 minutes</option><option value="20">every 20 minutes</option>
+          </select>
+        </label>
+        <label class="check"><input type="checkbox" data-key="watchGaming" data-optin> Even during fullscreen games (uses the GPU for a few seconds each time)</label>
+      </fieldset>
+      <fieldset class="group">
+        <legend>Reminders and timers</legend>
+        <p class="hint">“remind me in 20 min to take the pizza out”, “set a timer for 5 minutes”, “remind me at 6pm to call mum”, “what are my reminders”, “cancel my reminders”. A Windows notification and her popping up. Ctrl+Alt+T opens her chat window from anywhere.</p>
+      </fieldset>
+      <fieldset class="group">
+        <legend>Discord (“mute me”, “deafen me”)</legend>
+        <p class="hint">Out of the box Ty presses Discord's own Ctrl+Shift+M / Ctrl+Shift+D by bringing Discord to the front for a split second, which can't reach Discord while it's only in the tray. For a clean toggle that works anywhere: in Discord › User Settings › Keybinds › Add a Keybind › Toggle Mute (and Toggle Deafen), record something like Ctrl+Alt+Shift+M, and type the same here.</p>
+        <label class="field"><span>Toggle Mute keybind</span><input class="input" data-key="discordMuteKey" placeholder="empty = Discord's Ctrl+Shift+M"></label>
+        <label class="field"><span>Toggle Deafen keybind</span><input class="input" data-key="discordDeafenKey" placeholder="empty = Discord's Ctrl+Shift+D"></label>
+      </fieldset>
+      <fieldset class="group">
+        <legend>PC power and windows</legend>
+        <p class="hint">“Shut down”, “restart” and “sleep” always get a button first: nothing happens until you click it. “Lock my PC”, “minimise everything” and “bring them back” just happen.</p>
+      </fieldset>
+      <fieldset class="group">
+        <legend>What she can and can't touch</legend>
+        <p class="hint">Files: reads and saves in your user folders and other drives. Never Windows, System32, Program Files, ProgramData, AppData, or anything with passwords or keys. Apps: types and presses keys only after your click, never in terminals, PowerShell, the Registry Editor or Task Manager. Web: only when you ask her to search.</p>
+      </fieldset>
+    </section>
+  </main>
+
+  <footer class="foot mono"><span class="saved"></span></footer>
+  <script src="deck.js"></script>
+</body>
+</html>

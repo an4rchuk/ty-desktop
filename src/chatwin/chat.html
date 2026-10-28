@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en" data-skin="holocall">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'">
+  <title>Ty - Chat</title>
+  <link rel="stylesheet" href="chat.css">
+</head>
+<body>
+  <header class="head">
+    <img class="head__face" src="../../assets/capri/face-look.png" alt="">
+    <div class="head__text">
+      <h1 class="head__title">TY <span class="head__sep">//</span> <span class="head__mode">HOLOCALL</span></h1>
+      <p class="head__sub">&#9666; INCOMING LINK &nbsp;-&nbsp; LOCAL &middot; ENCRYPTED</p>
+    </div>
+    <div class="head__status">
+      <span class="head__state"><span class="dot"></span> <span class="head__label">IDLE</span></span>
+      <span class="bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
+    </div>
+    <span class="head__bar" aria-hidden="true"></span>
+  </header>
+
+  <div class="tools">
+    <select class="skin" aria-label="Chat skin">
+      <option value="holocall">SKIN: HOLOCALL</option>
+      <option value="netrunner">SKIN: NETRUNNER</option>
+      <option value="neon">SKIN: NEON</option>
+      <option value="braindance">SKIN: BRAINDANCE</option>
+      <option value="an4rch">SKIN: AN4RCH</option>
+    </select>
+  </div>
+
+  <main class="log" aria-live="polite"></main>
+
+  <form class="compose" autocomplete="off">
+    <input class="compose__input" type="text" maxlength="2000" placeholder="Message Ty…" spellcheck="true">
+    <button class="compose__send" type="submit">SEND</button>
+  </form>
+
+  <script src="chat.js"></script>
+</body>
+</html>

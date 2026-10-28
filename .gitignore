@@ -1,0 +1,14 @@
+node_modules/
+dist/
+out/
+*.log
+.DS_Store
+Thumbs.db
+
+# local debug captures
+captures/
+
+# personal: screenshots of your desktop, builds
+screenshots/
+dist/
+Ty-Portable/
