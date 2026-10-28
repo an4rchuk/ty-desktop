@@ -124,8 +124,10 @@ public static class CapriWindows {
 [CapriWindows]::Init()
 $last = ''
 $tick = 0
+$steam = 0 # the Steam game running (its app id, 0: none), as Steam itself says: even tabbed out of it
 while ($true) {
-  $snap = [CapriWindows]::Snapshot($Self)
+  if ($tick % 13 -eq 0) { $steam = [int](Get-ItemProperty 'HKCU:\Software\Valve\Steam' -ErrorAction SilentlyContinue).RunningAppID }
+  $snap = '{"steam":' + $steam + ',' + [CapriWindows]::Snapshot($Self).Substring(1)
   if ($snap -ne $last) {
     [Console]::Out.WriteLine($snap)
     [Console]::Out.Flush()

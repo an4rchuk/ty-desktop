@@ -458,9 +458,21 @@ async function boot() {
         clearInterval(liveTimer);
         if (cmd.on) liveTimer = setInterval(sendLiveRect, 250);
         break;
-      case 'gaming': // a game came to the front, or went (main.js): game mode on or off
+      case 'gaming': { // a game came on (in front, or Steam running one), or went (main.js): game mode
+        const was = chat.gaming;
         chat.gaming = cmd.on;
+        capri.setGaming(cmd.on);
+        if (cmd.on && !was) {
+          const g = cmd.game;
+          const line = g
+            ? pick([`${g}? say less. i'll be down by the clock`, `${g} again. try not to throw`, `${g} time. gpu's all yours`, `oh we're playing ${g}. don't rage`])
+            : pick(['game mode. gpu\'s all yours', 'gaming? cool. i\'ll be by the clock']);
+          panel.say({ kind: 'info', badge: 'GAME MODE', face: 'smug', line, quote: 'My big brain is off your GPU till you stop. Talk to me anytime: plain stuff like "skip song" is instant.', hold: 6000 });
+        } else if (!cmd.on && was) {
+          panel.say({ kind: 'info', badge: 'GAME MODE OFF', face: 'look', line: pick(['gg. back to normal', 'done? how many times did you die', 'back. full brain again']), hold: 4000 });
+        }
         break;
+      }
       case 'remind': // a reminder or timer going off (main.js)
         chat.reminded(cmd.text);
         break;

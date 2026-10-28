@@ -227,7 +227,7 @@ function targetDisplay() {
 // below the top of the taskbar (0, or its height).
 function overlayArea() {
   const { workArea, bounds } = targetDisplay();
-  const area = ['taskbar', 'perch'].includes(config.load().rest) ? { ...bounds, y: bounds.y + 1, height: bounds.height - 1 } : workArea;
+  const area = config.load().rest !== 'corner' || gaming ? { ...bounds, y: bounds.y + 1, height: bounds.height - 1 } : workArea;
   return { area, gap: area.y + area.height - (workArea.y + workArea.height) };
 }
 
@@ -538,7 +538,7 @@ function rebuildTray() {
     { label: gaming ? 'Game mode (on now: GPU freed)' : 'Game mode in games', type: 'checkbox', checked: cfg.gameMode !== false, click: (item) => updateConfig({ gameMode: item.checked }) },
     {
       label: t.rest,
-      submenu: [['perch', 'On your windows'], ['corner', t.restCorner], ['taskbar', t.restTaskbar]].map(([rest, label]) => ({
+      submenu: [['perch', 'On your windows'], ['hang', 'Hanging off the screen edges'], ['corner', t.restCorner], ['taskbar', t.restTaskbar]].map(([rest, label]) => ({
         label, type: 'radio', checked: cfg.rest === rest, click: () => updateConfig({ rest }),
       })),
     },
@@ -656,13 +656,22 @@ let gameLeft = 0;   // when it stopped being in front
 function gameModel() {
   return (chatModels || []).find((m) => TINY.test(m) && !SEES.test(m) && /qwen3/i.test(m)) || null;
 }
+let steamApp = 0; // the Steam game running (windows.ps1), 0: none
+// a Steam game's name, from the games she found on this PC (launch.js)
+async function steamName(id) {
+  const list = await launch.launchables().catch(() => []);
+  return list.find((i) => i.kind === 'steam' && String(i.id) === String(id))?.name || null;
+}
+
 function checkGame(now = Date.now()) {
   // on after 6 s of a game in front; off 40 s after it left (alt-tabbing to Discord and back changes nothing)
   const on = config.load().gameMode !== false && (gameSeen ? gaming || now - gameSeen > 6000 : gaming && now - gameLeft < 40000);
   if (on === gaming) return;
   gaming = on;
   if (on) ollama.unloadAll().catch(() => {});
-  sendCommand('gaming', { on, model: gameModel() });
+  fitOverlay();
+  const game = on && steamApp ? steamName(steamApp) : null;
+  Promise.resolve(game).then((name) => sendCommand('gaming', { on, model: gameModel(), game: name || null }));
   rebuildTray();
 }
 
@@ -1122,10 +1131,12 @@ function main() {
       overlay,
       onUpdate: (data) => {
         // a click on the taskbar brings it up over her: sitting on it, her legs would vanish behind it
-        if (data.taskbar && !lastWindows?.taskbar && ['taskbar', 'perch'].includes(config.load().rest)) raiseOverlay();
+        if (data.taskbar && !lastWindows?.taskbar && (config.load().rest !== 'corner' || gaming)) raiseOverlay();
         lastWindows = data;
-        if (data.game && !gameSeen) gameSeen = Date.now();
-        if (!data.game && gameSeen) { gameSeen = 0; gameLeft = Date.now(); }
+        const inGame = data.game || data.steam > 0;
+        steamApp = data.steam;
+        if (inGame && !gameSeen) gameSeen = Date.now();
+        if (!inGame && gameSeen) { gameSeen = 0; gameLeft = Date.now(); }
         overlay?.webContents.send('windows:update', data);
       },
     });

@@ -46,7 +46,8 @@ export class Capri {
     this.dormant = false; // asleep, down to her mask
     this.wander = true;
     this.possessWindows = true; // tray: "Possess my windows"
-    this.restOn = 'corner'; // where he rests when nothing's going on: his corner, 'taskbar' (sitting on it), or 'perch' (on your windows)
+    this.restOn = 'corner'; // where she rests when nothing's going on: her corner, 'taskbar' (sitting on it), 'perch' (on your windows) or 'hang' (off the screen's edges)
+    this.gaming = false;    // a game's on (main.js): she keeps to the clock end of the taskbar
     this.nextHome = 0;
     this.dragging = false;
 
@@ -287,12 +288,29 @@ export class Capri {
 
   // Sitting somewhere when he rests: on the taskbar, or ('perch') on top of your windows.
   sits() {
-    return this.restOn === 'taskbar' || this.restOn === 'perch';
+    return this.gaming || this.restOn === 'taskbar' || this.restOn === 'perch';
+  }
+
+  // A game came on (or went): off to her spot by the clock, out of your way, or back to her usual.
+  setGaming(on) {
+    if (this.gaming === on) return;
+    this.gaming = on;
+    this.nextHome = 0;
+    if (on && !this.busy && this.mode === 'idle') {
+      if (this.stance === 'peek') this.unpeek();
+      else this.goHome();
+    }
   }
 
   // Back to where she rests: her corner, sitting on the taskbar below it, or up on one of your windows.
   goHome() {
     const post = this.spot('post');
+    if (this.gaming) {
+      // in a game: on the taskbar right by the clock, the far end from the game's middle
+      const dx = this.view.w - 130 * this.scale; // (her mane reaches past her feet: all of her stays on screen)
+      if (this.stance === 'sit' && this.perch?.id === 'taskbar' && Math.abs(this.perch.dx - dx) < 40) return Promise.resolve();
+      return this.sitOn({ win: this.ledge(), dx });
+    }
     if (this.restOn === 'perch') {
       if (this.stance === 'sit') return Promise.resolve();
       const seat = this.pickSeat({ random: true });
@@ -425,6 +443,14 @@ export class Capri {
       return;
     }
 
+    // hanging off the screen: a little while after anything happens, she goes to hang from an edge
+    if (this.restOn === 'hang' && !this.gaming && this.mode === 'idle' && !this.busy && this.stance !== 'peek' && this.stance !== 'fall'
+      && now - this.lastActivity > 6000 && now > this.nextHome) {
+      this.nextHome = now + 8000;
+      this.peek();
+      return;
+    }
+
     // resting on the taskbar: a little while after anything happens, she goes back to sit on it
     if (this.sits() && this.mode === 'idle' && this.stance === 'stand'
       && now - this.lastActivity > 6000 && now > this.nextHome) {
@@ -447,6 +473,11 @@ export class Capri {
 
   // What she does with herself when nobody needs her.
   wanderStep() {
+    if (this.gaming) {
+      if (this.stance === 'sit' && Math.random() < 0.4) this.flourish();
+      return;
+    }
+    if (this.restOn === 'hang' && this.stance === 'peek') return; // she moves on by herself (peekUntil)
     if (!this.wander || this.stance === 'peek') {
       if (this.stance !== 'peek') this.flourish();
       return;
@@ -1294,7 +1325,7 @@ export class Capri {
       const x = rand(w * 0.2, w * 0.8);
       facing = pick([1, -1]);
       dir = x > w / 2 ? -1 : 1;
-      at = { x, y: -226 * s };
+      at = { x, y: (this.restOn === 'hang' ? -150 : -226) * s }; // hanging: down to her knees in view
       from = { x, y: -470 * s };
     }
 
@@ -1320,7 +1351,7 @@ export class Capri {
       }
     }
     this.peekFrom = from;
-    this.peekUntil = performance.now() + rand(15000, 40000);
+    this.peekUntil = performance.now() + (this.restOn === 'hang' ? rand(30000, 70000) : rand(15000, 40000));
     this.busy = false;
     this.onTeleport?.('end');
   }
@@ -1344,6 +1375,14 @@ export class Capri {
     this.busy = false;
     const side = this.peekSide;
     this.setStance('stand');
+    if (this.restOn === 'hang' && !this.gaming) {
+      this.peek(pick(['left', 'right', 'top', 'top'].filter((x) => x !== side)));
+      return;
+    }
+    if (this.gaming) {
+      this.goHome();
+      return;
+    }
     if (shy && Math.random() < 0.6) {
       this.peek(pick(['left', 'right', 'top'].filter((x) => x !== side)));
       return;
