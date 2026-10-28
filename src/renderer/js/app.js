@@ -91,6 +91,25 @@ async function boot() {
   capri.setView(innerWidth, innerHeight, innerHeight - floorGap);
   capri.setScale(config.scale);
 
+  // Ty Live (live.js): her lines and faces go to its viewers too, and while someone watches her video,
+  // where she is on the overlay (main.js crops her out of it)
+  const say = panel.say.bind(panel);
+  panel.say = (msg) => {
+    const shown = say(msg);
+    if (shown && msg?.line) host.mirror({ type: 'say', line: msg.line, quote: msg.quote || '', badge: msg.badge || '', face: msg.face || '' });
+    return shown;
+  };
+  const setFace = panel.setFace.bind(panel);
+  panel.setFace = (face) => {
+    setFace(face);
+    host.mirror({ type: 'face', face });
+  };
+  let liveTimer = null;
+  const sendLiveRect = () => {
+    const s = capri.scale;
+    host.liveRect({ x: capri.pos.x - 200 * s, y: capri.pos.y - 470 * s, width: 400 * s, height: 500 * s });
+  };
+
   const mission = new Mission();
   const brain = new Brain({ capri, panel, voice, host, mission, lang: config.lang, assistant: config.assistant });
 
@@ -435,6 +454,10 @@ async function boot() {
       case 'forget': // "Forget our conversations" in her menu, maybe with her chat open
         chat.history = [];
         break;
+      case 'liveVideo': // someone's watching her on Ty Live, or stopped (live.js)
+        clearInterval(liveTimer);
+        if (cmd.on) liveTimer = setInterval(sendLiveRect, 250);
+        break;
       case 'gaming': // a game came to the front, or went (main.js): game mode on or off
         chat.gaming = cmd.on;
         break;
@@ -444,8 +467,8 @@ async function boot() {
       case 'glance': // --dev: a watch-mode look at your screen right now
         chat.glance();
         break;
-      case 'chatText': // typed in his chat window (main.js)
-        chat.typed(cmd.text);
+      case 'chatText': // typed in his chat window, or by a Ty Live viewer (remote) (main.js)
+        chat.typed(cmd.text, { remote: Boolean(cmd.remote) });
         break;
       case 'greet': { // you unlocked the PC or it woke up (main.js), or "Preview greeting" in his Deck
         if (capri.stowed || capri.busy) break;

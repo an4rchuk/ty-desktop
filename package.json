@@ -1,6 +1,6 @@
 {
   "name": "ty-desktop",
-  "version": "0.7.1",
+  "version": "0.8.0",
   "description": "Ty, a personal AI that runs locally and lives on your desktop.",
   "author": "an4rchuk (fork of mochiiwuff/capri-desktop)",
   "repository": "github:an4rchuk/ty-desktop",
@@ -18,7 +18,9 @@
     "hooks:agy:uninstall": "node scripts/install-hooks-agy.js --uninstall",
     "check:llm": "node scripts/check-llm.js",
     "test:hooks": "node --test tests/hooks.test.js",
-    "dist": "electron-builder --win"
+    "dist": "electron-builder --win",
+    "dist:mac": "electron-builder --mac",
+    "dist:linux": "electron-builder --linux"
   },
   "keywords": [
     "claude-code",
@@ -68,6 +70,33 @@
       "createDesktopShortcut": true,
       "shortcutName": "Ty",
       "artifactName": "Ty-Setup-${version}.${ext}"
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "icon": "assets/icons/capri.png",
+      "category": "public.app-category.entertainment",
+      "extendInfo": {
+        "LSUIElement": true,
+        "NSScreenCaptureUsageDescription": "Ty looks at your screen when you ask her to (and now and then on her own, if you turn that on).",
+        "NSAppleEventsUsageDescription": "Ty controls music and power through System Events when you ask her."
+      }
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "icon": "assets/icons/capri.png",
+      "category": "Utility",
+      "maintainer": "an4rchuk"
+    },
+    "dmg": {
+      "artifactName": "Ty-${version}.${ext}"
+    },
+    "appImage": {
+      "artifactName": "Ty-${version}.${ext}"
     }
   }
 }

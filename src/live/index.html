@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Ty Live</title>
+  <link rel="stylesheet" href="/live.css">
+</head>
+<body>
+  <header class="bar">
+    <span class="brand">TY <i>//</i> LIVE</span>
+    <span class="status" data-state="connecting"><b></b><em>connecting</em></span>
+  </header>
+
+  <main class="feed" aria-live="polite"></main>
+
+  <form class="say" hidden>
+    <input name="text" maxlength="300" autocomplete="off" placeholder="say something to Ty…" aria-label="Message to Ty">
+    <button>SEND</button>
+  </form>
+
+  <aside class="cam" aria-label="Ty, live">
+    <div class="cam__frame">
+      <img class="cam__video" alt="Ty, live">
+      <img class="cam__face" alt="">
+      <span class="cam__tag">● LIVE</span>
+      <span class="cam__line"></span>
+    </div>
+    <button class="cam__size" type="button" title="Bigger or smaller">⤢</button>
+  </aside>
+
+  <script src="/live.js"></script>
+</body>
+</html>

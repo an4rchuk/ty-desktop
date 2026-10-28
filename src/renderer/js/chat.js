@@ -222,11 +222,12 @@ export class Chat {
     this.panel.setActs(this.acts);
   }
 
-  // Typed in his chat window: his chat opens on the desktop if it isn't, and it's sent there.
-  async typed(text) {
+  // Typed in his chat window, or by a viewer of Ty Live (remote): his chat opens on the desktop if it
+  // isn't, and it's sent there.
+  async typed(text, { remote = false } = {}) {
     if (!this.open) await this.start();
-    if (this.open && !this.turn) return this.send(text);
-    this.host.mirror({ type: 'user', text });
+    if (this.open && !this.turn) return this.send(text, { remote });
+    this.host.mirror({ type: 'user', text, remote });
     this.host.mirror({ type: 'ty', text: this.turn ? 'one sec, still answering the last one' : 'can’t chat right now: check his AI model (right-click him)', done: true });
   }
 
@@ -321,7 +322,9 @@ export class Chat {
     this.capri.nextGaze = performance.now() + 60000;
   }
 
-  async send(text) {
+  // remote: from Ty Live (live.js). Only ever talk: no apps, files, screen, web or PC actions from it,
+  // whatever it says; those stay for whoever's at the PC.
+  async send(text, { remote = false } = {}) {
     if (this.turn || !this.open) return;
     const id = Date.now();
     this.turn = id;
@@ -330,12 +333,12 @@ export class Chat {
     this.panel.setChatBusy(true);
     this.panel.setActions([]); // a close button she offered before goes with a new message
     this.panel.chatTurn({ quote: text, face: 'aside' });
-    this.host.mirror({ type: 'user', text });
-    this.note('Heard', `"${text}"`);
+    this.host.mirror({ type: 'user', text, remote });
+    this.note(remote ? 'Live' : 'Heard', `"${text}"`);
     this.capri.pulse();
     // what you asked for plainly happens right away (the music, the volume, an app you named): her
     // line about it comes under her answer (Claude Code, answering her chat, does things its own way)
-    const asked = this.agent ? null : this.asked(text);
+    const asked = this.agent || remote ? null : this.asked(text);
     const early = asked && asked.kind !== 'close' ? this.doNow(asked) : null;
     // game mode (main.js): something plain you asked for just happens, with no model at all, so it's
     // instant and costs your game nothing
@@ -354,8 +357,14 @@ export class Chat {
     await Promise.race([this.appsReady, new Promise((r) => setTimeout(r, 1500))]);
     const messages = [{ role: 'system', content: this.persona() }, ...this.history.slice(-REMEMBER)];
     const route = routeOf(text); // which model answers, on "Auto"
+    if (remote) {
+      messages[messages.length - 1] = {
+        role: 'user',
+        content: `${text}\n[sent from Ty Live, on another device: here you can only talk. You can't open apps, read or save files, look at the screen, search the web or do PC stuff for it, so never say you did or will; if it asks, say that only works from the PC itself.]`,
+      };
+    }
     // you asked him to look at your screen: a fresh capture goes with your message, this once (never kept)
-    if (!this.agent && SCREEN_ASK.test(text)) {
+    if (!this.agent && !remote && SCREEN_ASK.test(text)) {
       this.panel.stream(this.t.lookingScreen || 'looking…');
       const shot = await this.host.screenshot().catch(() => null);
       if (shot) {
@@ -388,8 +397,8 @@ export class Chat {
     clearTimeout(slow);
     // he asked to look something up (a file, a folder, the web when you asked): it goes back to him, and
     // he answers with it
-    const webOk = SEARCH_ASK.test(text);
-    const filesOk = /\b(files?|folders?|desktop|documents|downloads|pictures|music|videos|read|find|where|pc|computer|drive|txt|py|notes?)\b|\.\w{1,4}\b/i.test(text);
+    const webOk = !remote && SEARCH_ASK.test(text);
+    const filesOk = !remote && /\b(files?|folders?|desktop|documents|downloads|pictures|music|videos|read|find|where|pc|computer|drive|txt|py|notes?)\b|\.\w{1,4}\b/i.test(text);
     for (let round = 0; round < FILE_ROUNDS && res.ok && !this.agent && this.turn === id; round++) {
       const file = filesOk && FILE_TAG.exec(res.text);
       const web = webOk && SEARCH_TAG.exec(res.text);
@@ -432,12 +441,16 @@ export class Chat {
       this.panel.setChatBusy(false);
       return;
     }
-    const answer = tidy(clean(res.text), text) || clean(res.text) || '…';
+    let answer = tidy(clean(res.text), text) || clean(res.text) || '…';
+    // from Ty Live, a PC thing asked for: whatever she said, it didn't happen, and she says so
+    if (remote && (this.asked(text) || DO_ASK.test(text) || OPEN_ASK.test(text) || SCREEN_ASK.test(text))) {
+      answer += '\n(that stuff only works from the PC itself, not from live chat)';
+    }
     this.warm = true;
     // kept with its tags, so he remembers HOW he did things (only "drafted it", and he learns to skip the tag)
     // (but not his moves: seeing one on every past message, he'd add one to every answer)
     const tags = res.text.match(/\[\[\s*(discord|ls|list|read|find|type|keys?|search)\s*:[^\]]*\]\]/gi) || [];
-    const writes = !SAVE_ASK.test(text) ? [] : [...res.text.matchAll(WRITE_BLOCK)].map((m) => ({ file: m[1].trim(), content: m[2].replace(/\n$/, '') }));
+    const writes = remote || !SAVE_ASK.test(text) ? [] : [...res.text.matchAll(WRITE_BLOCK)].map((m) => ({ file: m[1].trim(), content: m[2].replace(/\n$/, '') }));
     this.remember({ role: 'assistant', content: [answer, ...tags, ...writes.map((w) => `[[write: ${w.file}]]`)].join(' ') });
     this.panel.stream(answer, { done: true });
     this.panel.setFace(mood(answer));
@@ -448,7 +461,7 @@ export class Chat {
       if (move === 'teleport') this.capri.teleport(this.capri.spot('random'));
       else this.capri.perform(move, this.capri.towardCenter());
     }
-    if (!this.agent) this.after(res.text, answer, asked, early, text);
+    if (!this.agent && !remote) this.after(res.text, answer, asked, early, text);
     this.listApps(); // fresh for the next message
   }
 
@@ -563,8 +576,8 @@ export class Chat {
     }
     if (asked.kind === 'windows') {
       const res = await this.host.windowsAll(asked.how);
-      this.note('PC', res.text);
-      return { line: `${res.text} ✓`, face: 'smug' };
+      this.note(res.ok ? 'PC' : 'Failed', res.text);
+      return { line: res.ok ? `${res.text} ✓` : `couldn’t: ${res.text}`, face: res.ok ? 'smug' : 'wide' };
     }
     if (asked.kind === 'power') return null; // a button, under his answer (after)
     if (asked.kind === 'media') {

@@ -44,6 +44,8 @@ const SYSTEM_FILES = /^[a-z]:\\(pagefile|hiberfil|swapfile)\.sys$|^[a-z]:\\(boot
 const PRIVATE_DIRS = new Set([
   'appdata', 'application data', 'local settings', 'cookies', 'nethood', 'printhood', 'recent', 'sendto', 'templates', 'start menu',
   '.ssh', '.aws', '.azure', '.gnupg', '.docker', '.kube', '.config', '.claude', '.codex', '.gemini', '.ollama', '.vscode', '.cache', '.local',
+  // Mac and Linux: app data, keychains, browsers' and mail's profiles, password stores
+  'library', 'keychains', '.mozilla', '.thunderbird', '.password-store', '.pki', '.var', 'snap',
 ]);
 // any file that looks like a secret, wherever it is
 const SECRET = /^\.env(\..*)?$|\.(pem|key|pfx|p12|kdbx|kdb|ppk|ovpn|rdp|wallet|keystore|jks|asc|gpg|sqlite|db|ldb|dat)$|^id_(rsa|ed25519|ecdsa|dsa)|^ntuser|credential|password|passwd|secret|token|cookie|login data|wallet|\.git-credentials$|\.npmrc$|\.netrc$|\.pypirc$/i;
@@ -54,11 +56,16 @@ const norm = (p) => {
   const full = path.resolve(p);
   return /^[a-z]:\\$/i.test(full) ? full : full.replace(/[\\/]+$/, '');
 };
+// Windows paths ignore case; Mac and Linux ones don't
+const WIN = process.platform === 'win32';
+const S = path.sep;
 const inside = (p, root) => {
-  const a = norm(p).toLowerCase();
-  const b = norm(root).toLowerCase();
-  return a === b || a.startsWith(b.endsWith('\\') ? b : `${b}\\`);
+  const a = WIN ? norm(p).toLowerCase() : norm(p);
+  const b = WIN ? norm(root).toLowerCase() : norm(root);
+  return a === b || a.startsWith(b.endsWith(S) ? b : `${b}${S}`);
 };
+// what you typed, with this system's slashes ("desktop/notes.txt" on Windows, "desktop\notes.txt" elsewhere)
+const slashes = (p) => p.replace(/[\\/]/g, S);
 
 // Why he can't go there, or null if he can.
 function blocked(p) {
@@ -67,8 +74,9 @@ function blocked(p) {
   const parts = path.relative(HOME, full).split(path.sep);
   if (inside(full, HOME)) {
     if (parts.some((part) => PRIVATE_DIRS.has(part.toLowerCase()))) return 'that’s app data or login stuff';
-  } else if (!DRIVES.some((d) => inside(full, d))) {
-    return 'only your user folder and the other drives are open to Ty';
+  } else if (!WIN || !DRIVES.some((d) => inside(full, d))) {
+    // (on a Mac or Linux, only your home folder: the rest is the system's)
+    return WIN ? 'only your user folder and the other drives are open to Ty' : 'only your home folder is open to Ty';
   }
   if (SECRET.test(path.basename(full))) return 'that file looks like passwords, keys or logins';
   return null;
@@ -77,10 +85,10 @@ function blocked(p) {
 // The path asked for, made real: aliases, ~, relative to the home folder, then junctions and links
 // followed so a link can't lead him somewhere he can't go.
 async function resolve(asked) {
-  let p = String(asked || '').trim().replace(/^["'`]+|["'`]+$/g, '').replace(/\//g, '\\');
+  let p = slashes(String(asked || '').trim().replace(/^["'`]+|["'`]+$/g, ''));
   if (!p || p === '~' || /^home$/i.test(p)) p = HOME;
-  p = p.replace(/^~\\?/, `${HOME}\\`);
-  const first = p.split('\\')[0].toLowerCase();
+  if (p.startsWith('~')) p = path.join(HOME, p.slice(1));
+  const first = p.split(S)[0].toLowerCase();
   if (ALIASES.includes(first)) p = path.join(alias(first), p.slice(first.length));
   if (!path.isAbsolute(p)) p = path.join(HOME, p);
   const why = blocked(p);
@@ -151,7 +159,7 @@ async function find(query) {
       if (e.isDirectory() && !e.isSymbolicLink()) queue.push(full);
     }
   }
-  return found.length ? `Found ${found.length} for "${query}":\n${found.join('\n')}` : `Nothing named like "${query}" in Tay's folders.`;
+  return found.length ? `Found ${found.length} for "${query}":\n${found.join('\n')}` : `Nothing named like "${query}" in your folders.`;
 }
 
 // Saving a text file for you: same places as reading (never Windows, programs, AppData or secrets),
@@ -160,11 +168,11 @@ async function find(query) {
 const WRITE_MAX = 512 * 1024;
 const APP_ROOT = path.join(__dirname, '..', '..');
 async function write(asked, content, { overwrite = false } = {}) {
-  let p = String(asked || '').trim().replace(/^["'`]+|["'`]+$/g, '').replace(/\//g, '\\');
+  let p = slashes(String(asked || '').trim().replace(/^["'`]+|["'`]+$/g, ''));
   if (!p) throw new Error('no file name');
-  const first = p.split('\\')[0].toLowerCase();
+  const first = p.split(S)[0].toLowerCase();
   if (ALIASES.includes(first)) p = path.join(alias(first), p.slice(first.length));
-  else if (/^~\\?/.test(p)) p = p.replace(/^~\\?/, `${HOME}\\`);
+  else if (p.startsWith('~')) p = path.join(HOME, p.slice(1));
   else if (!path.isAbsolute(p)) p = path.join(alias('documents'), 'Ty', p); // a bare name: Documents\Ty
   const why = blocked(p) || (inside(p, APP_ROOT) && 'that’s Ty’s own code, he can’t rewrite himself');
   if (why) throw new Error(`blocked: ${why}`);

@@ -1,0 +1,131 @@
+:root {
+  --bg: #0b0a10;
+  --panel: #14121c;
+  --line: #2a2533;
+  --text: #ece8f2;
+  --dim: #8d8698;
+  --red: #ff2a3d;
+  --cyan: #29d6e8;
+  --mono: ui-monospace, "JetBrains Mono", Consolas, Menlo, monospace;
+  --sans: "Chakra Petch", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+  background:
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.018) 0 1px, transparent 1px 3px),
+    radial-gradient(1200px 600px at 100% 100%, rgba(41, 214, 232, 0.07), transparent 60%),
+    var(--bg);
+  color: var(--text);
+  font: 15px/1.45 var(--sans);
+  display: flex;
+  flex-direction: column;
+}
+
+.bar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+  background: linear-gradient(90deg, rgba(255, 42, 61, 0.12), transparent 40%);
+}
+.brand { font: 700 18px/1 var(--sans); letter-spacing: 0.18em; }
+.brand i { color: var(--red); font-style: normal; }
+.status { font: 12px var(--mono); color: var(--dim); display: flex; align-items: center; gap: 8px; }
+.status b { width: 8px; height: 8px; border-radius: 50%; background: var(--dim); }
+.status[data-state="live"] b { background: var(--red); box-shadow: 0 0 10px var(--red); animation: pulse 1.6s infinite; }
+.status[data-state="live"] em { color: var(--text); }
+.status em { font-style: normal; }
+@keyframes pulse { 50% { opacity: 0.35; } }
+
+.feed {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  /* room for the video box in the corner */
+  padding-right: min(300px, 42vw);
+  display: flex; flex-direction: column; gap: 10px;
+}
+.msg { max-width: 640px; animation: in 0.18s ease-out; }
+@keyframes in { from { opacity: 0; transform: translateY(4px); } }
+.msg__who { font: 700 11px var(--mono); letter-spacing: 0.14em; margin-bottom: 3px; }
+.msg__text { white-space: pre-wrap; overflow-wrap: anywhere; }
+.msg--ty .msg__who { color: var(--red); }
+.msg--ty .msg__text { padding: 8px 12px; background: var(--panel); border-left: 2px solid var(--red); }
+.msg--ty.is-typing .msg__text::after { content: "▍"; color: var(--cyan); animation: pulse 0.8s infinite; }
+.msg--you .msg__who { color: var(--cyan); }
+.msg--you .msg__text { color: var(--dim); }
+.msg--say .msg__who { color: var(--cyan); }
+.msg--say .msg__text { padding: 8px 12px; border: 1px solid var(--line); border-left: 2px solid var(--cyan); }
+.msg__quote { display: block; margin-top: 4px; font: 12px var(--mono); color: var(--dim); }
+.empty { color: var(--dim); font: 13px var(--mono); margin: auto; text-align: center; }
+
+.say {
+  display: flex; gap: 8px; padding: 12px 16px;
+  padding-right: min(300px, 42vw);
+  border-top: 1px solid var(--line);
+  background: var(--panel);
+}
+.say input {
+  flex: 1; min-width: 0;
+  background: #0f0d15; color: var(--text);
+  border: 1px solid var(--line); padding: 10px 12px; font: 15px var(--sans);
+}
+.say input:focus { outline: none; border-color: var(--cyan); }
+.say button {
+  background: var(--red); color: #fff; border: 0; padding: 0 16px;
+  font: 700 13px var(--mono); letter-spacing: 0.12em; cursor: pointer;
+}
+.say button:disabled { opacity: 0.5; cursor: wait; }
+
+/* the video box: her, live, in the corner */
+.cam {
+  position: fixed; right: 16px; bottom: 16px;
+  width: min(260px, 38vw);
+  transition: width 0.2s ease;
+}
+.cam.is-big { width: min(420px, 70vw); }
+.cam__frame {
+  position: relative; aspect-ratio: 4 / 5; overflow: hidden;
+  background: radial-gradient(circle at 50% 70%, #1c1726, #050407);
+  border: 1px solid var(--red);
+  box-shadow: 0 0 0 1px rgba(255, 42, 61, 0.25), 0 12px 40px rgba(0, 0, 0, 0.6), inset 0 0 40px rgba(41, 214, 232, 0.08);
+}
+.cam__frame::before, .cam__frame::after {
+  content: ""; position: absolute; width: 14px; height: 14px; border: 2px solid var(--cyan); z-index: 2; pointer-events: none;
+}
+.cam__frame::before { left: 4px; top: 4px; border-right: 0; border-bottom: 0; }
+.cam__frame::after { right: 4px; bottom: 4px; border-left: 0; border-top: 0; }
+.cam__video { width: 100%; height: 100%; object-fit: contain; display: block; }
+.cam__face {
+  position: absolute; left: 8px; bottom: 8px; width: 22%; aspect-ratio: 1;
+  border: 1px solid var(--cyan); background: #000; object-fit: cover;
+  transition: transform 0.15s;
+}
+.cam__face.is-swap { transform: scale(1.15); }
+.cam__tag {
+  position: absolute; right: 10px; top: 10px; z-index: 2;
+  font: 700 10px var(--mono); letter-spacing: 0.14em; color: #fff;
+  background: var(--red); padding: 3px 6px;
+}
+.cam__line {
+  position: absolute; left: 30%; right: 8px; bottom: 8px;
+  font: 12px var(--mono); color: var(--text);
+  background: rgba(5, 4, 7, 0.82); border-left: 2px solid var(--cyan); padding: 4px 6px;
+  opacity: 0; transition: opacity 0.25s;
+}
+.cam__line.is-on { opacity: 1; }
+.cam__size {
+  position: absolute; left: -32px; top: 0; width: 26px; height: 26px;
+  background: var(--panel); color: var(--cyan); border: 1px solid var(--line); cursor: pointer;
+}
+
+@media (max-width: 640px) {
+  .feed, .say { padding-right: 16px; }
+  .feed { padding-top: calc(16px + min(200px, 52vw) * 1.25); }
+  .cam { top: 60px; bottom: auto; right: 16px; width: min(200px, 52vw); }
+  .cam__size { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}

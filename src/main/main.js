@@ -22,6 +22,7 @@ const files = require('./files');
 const discord = require('./discord');
 const control = require('./control');
 const pc = require('./pc');
+const { createLive } = require('./live');
 const { ASSISTANTS, assistant } = require('./assistants');
 const activeAssistant = () => assistant(config.load().assistant); // Claude Code or Codex
 const activeHooks = () => activeAssistant().hooks;
@@ -310,6 +311,30 @@ function createOverlay() {
   }
 }
 
+// Ty Live (live.js): her chat and her video on other devices. The video is her corner of the overlay,
+// cropped around her (the overlay tells where she is while someone watches), as JPEG frames.
+let liveRect = null;
+const live = createLive({
+  getConfig: () => config.load(),
+  setConfig: (patch) => config.save(patch),
+  face: (file) => skinFile('/assets/capri/' + file) || path.join(ROOT, 'assets', 'capri', path.basename(file)),
+  async capture() {
+    if (!overlay || overlay.isDestroyed() || !liveRect) return null;
+    const b = overlay.getBounds();
+    const r = {
+      x: Math.max(0, Math.round(liveRect.x)), y: Math.max(0, Math.round(liveRect.y)),
+      width: Math.round(liveRect.width), height: Math.round(liveRect.height),
+    };
+    r.width = Math.min(r.width, b.width - r.x);
+    r.height = Math.min(r.height, b.height - r.y);
+    if (r.width < 20 || r.height < 20) return null;
+    const img = await overlay.webContents.capturePage(r);
+    return img.resize({ height: 360, quality: 'good' }).toJPEG(72);
+  },
+  wantVideo: (on) => overlay?.webContents.send('capri:command', { name: 'liveVideo', on }),
+  onSay: (text) => sendCommand('chatText', { text, remote: true }),
+});
+
 // Reminders and timers ("remind me in 20 min to…"): kept in his config so a restart doesn't lose them,
 // each one a Windows notification and him popping up with it. Missed by under an hour (the PC was off
 // or asleep): they go off as soon as he's back. Older ones are dropped.
@@ -402,6 +427,7 @@ function rendererConfig() {
 function updateConfig(patch) {
   config.save(patch);
   if ('rest' in patch) fitOverlay(); // the taskbar in her window or not
+  if ('live' in patch || 'liveChat' in patch) live.sync();
   if ('skin' in patch) {
     // his new look: the overlay and his chat window load their pictures again
     overlay?.webContents.reloadIgnoringCache();
@@ -924,7 +950,12 @@ function registerIpc() {
   });
   ipcMain.on('chat:mirror', (_e, update) => {
     if (chatWin && !chatWin.isDestroyed()) chatWin.webContents.send('chatwin:update', update);
+    live.push(update);
   });
+  ipcMain.on('live:rect', (_e, rect) => { liveRect = rect; });
+  ipcMain.handle('deck:live', () => live.links());
+  ipcMain.handle('deck:liveNewKey', () => live.newKey());
+  ipcMain.on('deck:openUrl', (_e, url) => /^http:\/\/127\.0\.0\.1:47830\//.test(String(url)) && shell.openExternal(url)); // Ty Live, here
   // a look at your screen, only when you ask him in his chat: a JPEG for the local model, never saved
   ipcMain.handle('screen:capture', async () => {
     const display = screen.getPrimaryDisplay();
@@ -1061,6 +1092,8 @@ async function debugHandler(route, body) {
 // without the graphics card, often fixes it.
 function applyRender() {
   const { render } = config.load();
+  // Linux draws see-through windows only when asked to (and with a compositor running)
+  if (process.platform === 'linux') app.commandLine.appendSwitch('enable-transparent-visuals');
   if (render === 'gl') app.commandLine.appendSwitch('use-angle', 'gl');
   if (render === 'software') {
     app.disableHardwareAcceleration();
@@ -1114,6 +1147,7 @@ function main() {
     llm.restoreClaude(readMemory().claude);
     refreshModels(); // for her menu's model list
     startPortableOllama();
+    live.sync(); // Ty Live, if you turned it on
     setTimeout(() => launch.launchables().catch(() => {}), 20000); // what she can open, before you ask
     screen.on('display-metrics-changed', fitOverlay);
     screen.on('display-added', () => { fitOverlay(); rebuildTray(); });
@@ -1131,6 +1165,7 @@ function main() {
     globalShortcut.unregisterAll();
     windowWatch?.stop();
     portableOllama?.kill(); // her Ollama from the stick goes with her
+    live.stop();
   });
   app.on('window-all-closed', (e) => e.preventDefault());
 }

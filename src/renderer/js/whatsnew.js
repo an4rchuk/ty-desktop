@@ -1,10 +1,27 @@
 // What's new in Ty: after an update he shows each new thing once, on his own, one after another
 // (app.js), and again from "What's new" in his menu. Bump VERSION with each batch.
 
-export const VERSION = '0.7.1';
+export const VERSION = '0.8.0';
 
 // { line, quote, face, demo }: demo(ctx) shows it off ({ capri, panel, host, chat })
 export const NEWS = [
+  {
+    line: 'ty live. watch me and chat with me from your phone',
+    quote: 'Deck › PC & Chat › Ty Live: copy the link, open it on anything on your Wi-Fi. My chat as it happens, and me live in a little box in the corner. People there can talk to me but can’t touch your PC.',
+    face: 'grin',
+    demo: ({ capri }) => capri.perform('victory', 0),
+  },
+  {
+    line: 'and i work on mac and linux now. mostly',
+    quote: 'Chat, apps, music, lock, power, files, Ty Live. Typing into apps, Discord and moving windows are still Windows-only. That’s it: right-click me › What’s new to see this again.',
+    face: 'smug',
+    demo: ({ capri }) => capri.perform('hop'),
+  },
+];
+
+// the batch before (0.7.x), kept for reference
+export const OLDER_07 = [
+
   {
     line: "oh and it’s she/her now. your twin sister",
     quote: "Same Ty, same attitude, new pronouns. Everything else below.",

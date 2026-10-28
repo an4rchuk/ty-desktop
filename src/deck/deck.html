@@ -131,6 +131,17 @@
         <div class="row"><button class="btn btn--wide" data-do="greet">Preview greeting</button></div>
       </fieldset>
       <fieldset class="group">
+        <legend>Ty Live</legend>
+        <p class="hint">Her chat as it happens, plus a little live video of her, on your phone or any PC on your Wi-Fi. The links carry a secret key: only people you send one to get in. Viewers can only talk to her: nothing they type opens apps, reads files, looks at your screen or touches your PC. The first time, Windows asks to let Ty on your network: say yes for <b>private</b> networks.</p>
+        <label class="check"><input type="checkbox" data-key="live" data-optin> Ty Live on</label>
+        <label class="check"><input type="checkbox" data-key="liveChat"> Viewers can chat with her</label>
+        <ul class="live-links"></ul>
+        <div class="row">
+          <button class="btn" data-do="live-open">Open it here</button>
+          <button class="btn" data-do="live-key">New link (old ones stop working)</button>
+        </div>
+      </fieldset>
+      <fieldset class="group">
         <legend>Game mode</legend>
         <p class="hint">When a game's in front for a few seconds (anything from Steam, Epic, Riot, Xbox, Roblox, Minecraft…, or any fullscreen app that isn't a browser), her big model leaves your GPU and a tiny Qwen3 1.7B answers from the CPU instead: 0 VRAM. Plain commands (open, close, music, mute, timers, “move spotify to my samsung”) skip the AI completely and happen instantly. Back to normal 40 seconds after you leave the game. Only on Auto.</p>
         <label class="check"><input type="checkbox" data-key="gameMode"> Game mode when I'm gaming</label>

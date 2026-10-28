@@ -39,7 +39,19 @@ async function launchables() {
 
 async function installed() {
   if (cache && Date.now() - cache.at < CACHE_MS) return cache.items;
-  if (!WIN) return [];
+  if (!WIN) {
+    // a Mac's .app bundles, Linux's .desktop entries, and Steam games on either
+    const items = [];
+    const seen = new Set();
+    for (const item of [...steamGames(await steamRoot()), ...(process.platform === 'darwin' ? macApps() : linuxApps())]) {
+      const key = words(item.name).join(' ');
+      if (!key || seen.has(key) || SKIP.test(item.name)) continue;
+      seen.add(key);
+      items.push(item);
+    }
+    cache = { at: Date.now(), items };
+    return items;
+  }
   const items = [];
   const seen = new Set();
   const add = (item) => {
@@ -60,6 +72,14 @@ async function installed() {
 }
 
 function steamRoot() {
+  if (!WIN) {
+    // Mac and Linux keep Steam in your home folder
+    const home = require('node:os').homedir();
+    const spots = process.platform === 'darwin'
+      ? [path.join(home, 'Library', 'Application Support', 'Steam')]
+      : [path.join(home, '.steam', 'steam'), path.join(home, '.local', 'share', 'Steam'), path.join(home, '.var', 'app', 'com.valvesoftware.Steam', '.local', 'share', 'Steam')];
+    return Promise.resolve(spots.find((p) => fs.existsSync(path.join(p, 'steamapps'))) || null);
+  }
   return new Promise((resolve) => {
     execFile('reg.exe', ['query', 'HKCU\\Software\\Valve\\Steam', '/v', 'SteamPath'], { windowsHide: true, timeout: 5000 }, (err, out) => {
       const found = !err && /SteamPath\s+REG_SZ\s+(.+)/.exec(String(out))?.[1].trim();
@@ -69,6 +89,52 @@ function steamRoot() {
 }
 
 // Steam's games, from the manifests in each of its libraries
+// Mac: the apps in /Applications (and the system's, and your own ~/Applications), opened with `open -a`
+function macApps() {
+  const home = require('node:os').homedir();
+  const items = [];
+  for (const dir of ['/Applications', '/Applications/Utilities', '/System/Applications', path.join(home, 'Applications')]) {
+    let names = [];
+    try {
+      names = fs.readdirSync(dir).filter((n) => n.endsWith('.app'));
+    } catch {
+      continue;
+    }
+    for (const n of names) items.push({ name: n.replace(/\.app$/, ''), kind: 'app', id: path.join(dir, n) });
+  }
+  return items;
+}
+
+// Linux: the .desktop entries your app menu shows (system, your own, Flatpak, Snap), opened with gtk-launch
+function linuxApps() {
+  const home = require('node:os').homedir();
+  const dirs = ['/usr/share/applications', '/usr/local/share/applications', path.join(home, '.local', 'share', 'applications'),
+    '/var/lib/flatpak/exports/share/applications', path.join(home, '.local', 'share', 'flatpak', 'exports', 'share', 'applications'),
+    '/var/lib/snapd/desktop/applications'];
+  const items = [];
+  for (const dir of dirs) {
+    let files = [];
+    try {
+      files = fs.readdirSync(dir).filter((f) => f.endsWith('.desktop'));
+    } catch {
+      continue;
+    }
+    for (const f of files) {
+      let text = '';
+      try {
+        text = fs.readFileSync(path.join(dir, f), 'utf8');
+      } catch {
+        continue;
+      }
+      const entry = text.split(/^\[/m).find((s) => s.startsWith('Desktop Entry]')) || '';
+      if (/^(NoDisplay|Hidden)=true/m.test(entry) || !/^Type=Application/m.test(entry)) continue;
+      const name = /^Name=(.+)$/m.exec(entry)?.[1]?.trim();
+      if (name) items.push({ name, kind: 'app', id: path.join(dir, f) });
+    }
+  }
+  return items;
+}
+
 function steamGames(root) {
   if (!root) return [];
   const libraries = new Set([root]);
@@ -160,6 +226,17 @@ async function launch({ kind, id } = {}) {
   }
   if (kind === 'steam') return shell.openExternal(`steam://rungameid/${id}`);
   if (kind === 'epic') return shell.openExternal(`com.epicgames.launcher://apps/${encodeURIComponent(id)}?action=launch&silent=true`);
+  if (process.platform === 'darwin') {
+    spawn('open', ['-a', id], { detached: true, stdio: 'ignore' }).on('error', () => {}).unref();
+    return undefined;
+  }
+  if (!WIN) {
+    // gtk-launch takes the entry's name; without it (no GTK), gio opens the .desktop file itself
+    spawn('gtk-launch', [path.basename(id, '.desktop')], { detached: true, stdio: 'ignore' })
+      .on('error', () => spawn('gio', ['launch', id], { detached: true, stdio: 'ignore' }).on('error', () => {}).unref())
+      .unref();
+    return undefined;
+  }
   spawn('explorer.exe', [`shell:AppsFolder\\${id}`], { detached: true, stdio: 'ignore' }).on('error', () => {}).unref();
   return undefined;
 }
@@ -171,8 +248,31 @@ const MEDIA = { pause: [0xb3, 1], play: [0xb3, 1], next: [0xb0, 1], previous: [0
 const KEY_DOWN = 1; // KEYEVENTF_EXTENDEDKEY
 const KEY_UP = 3;   // ...and KEYEVENTF_KEYUP
 
+// Mac: Spotify (else Apple Music) through AppleScript, the volume through the system's own
+const MAC_MEDIA = {
+  pause: 'pause', play: 'play', next: 'next track', previous: 'previous track',
+};
+const MAC_VOLUME = { volup: '+ 10', voldown: '- 10' };
+// Linux: playerctl (any MPRIS player: Spotify, browsers, VLC…) and PulseAudio / PipeWire's pactl
+const LINUX_MEDIA = {
+  pause: ['playerctl', ['pause']], play: ['playerctl', ['play']], next: ['playerctl', ['next']], previous: ['playerctl', ['previous']],
+  volup: ['pactl', ['set-sink-volume', '@DEFAULT_SINK@', '+10%']], voldown: ['pactl', ['set-sink-volume', '@DEFAULT_SINK@', '-10%']],
+  mute: ['pactl', ['set-sink-mute', '@DEFAULT_SINK@', 'toggle']],
+};
+const run = (cmd, args) => new Promise((resolve) => execFile(cmd, args, { timeout: 8000 }, (err) => resolve(!err)));
+
 async function media(action) {
-  if (!WIN || !MEDIA[action]) return false;
+  if (process.platform === 'darwin') {
+    if (MAC_MEDIA[action]) {
+      const verb = MAC_MEDIA[action];
+      return run('osascript', ['-e', `if application "Spotify" is running then tell application "Spotify" to ${verb} else tell application "Music" to ${verb}`]);
+    }
+    if (MAC_VOLUME[action]) return run('osascript', ['-e', `set volume output volume ((output volume of (get volume settings)) ${MAC_VOLUME[action]})`]);
+    if (action === 'mute') return run('osascript', ['-e', 'set volume output muted (not (output muted of (get volume settings)))']);
+    return false;
+  }
+  if (!WIN) return LINUX_MEDIA[action] ? run(...LINUX_MEDIA[action]) : false;
+  if (!MEDIA[action]) return false;
   const [key, times] = MEDIA[action];
   return powershell(
     'Add-Type -Namespace Capri -Name Keys -MemberDefinition \'[DllImport("user32.dll")] public static extern void keybd_event(byte vk, byte scan, uint flags, System.UIntPtr extra);\'; '

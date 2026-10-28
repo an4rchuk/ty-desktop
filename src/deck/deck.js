@@ -199,6 +199,39 @@ $('[data-do="greet"]').addEventListener('click', () => api.greet());
 $('[data-do="open-chat"]').addEventListener('click', () => api.openChat());
 $('[data-startup]').addEventListener('change', (e) => { api.startup(e.target.checked); saved(); });
 
+// ---------- Ty Live ----------
+
+let liveUrls = [];
+async function liveLinks(info) {
+  info = info || await api.live();
+  liveUrls = info.urls;
+  const list = $('.live-links');
+  if (!cfg.live) {
+    list.innerHTML = '<li class="hint">Turn it on to get the links.</li>';
+    return;
+  }
+  list.replaceChildren(...info.urls.map((url, i) => {
+    const li = document.createElement('li');
+    const code = document.createElement('code');
+    code.textContent = url;
+    const copy = document.createElement('button');
+    copy.className = 'btn btn--x';
+    copy.textContent = 'Copy';
+    copy.addEventListener('click', async () => {
+      await navigator.clipboard.writeText(url);
+      saved('link copied ✓');
+    });
+    li.append(i === 0 ? 'Name: ' : 'IP: ', code, ' ', copy);
+    return li;
+  }));
+}
+$('[data-key="live"]').addEventListener('change', () => setTimeout(() => liveLinks(), 300));
+$('[data-do="live-open"]').addEventListener('click', () => liveUrls[1] && cfg.live && api.openUrl(liveUrls[1].replace(/\/\/[^:/]+:/, '//127.0.0.1:')));
+$('[data-do="live-key"]').addEventListener('click', async () => {
+  liveLinks(await api.liveNewKey());
+  saved('new link made ✓ (old ones stopped working)');
+});
+
 // ---------- skins ----------
 
 async function skins(pick = cfg.skin || '') {
@@ -242,6 +275,7 @@ $('[data-do="open-skins"]').addEventListener('click', () => api.openSkins());
   $('[data-startup]').checked = init.startup;
   await skins();
   bind();
+  liveLinks();
   renderApps();
   chips();
   tab(init.tab || 'apps');

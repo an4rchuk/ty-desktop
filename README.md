@@ -23,6 +23,19 @@ body, recoloured red and electric cyan, with a new personality and a pile of new
 - **Hangs out on your windows** when you're not using her, and says hi when you unlock the PC.
 - **The Deck**: her settings window (right-click her › Deck). Custom app names, skins, all the switches.
 - **Ctrl+Alt+T** opens her chat window from anywhere.
+- **Ty Live**: her chat as it happens plus a little live video of her, on your phone or any PC on your Wi-Fi
+  (Deck › PC & Chat › Ty Live). Secret links only; people watching can chat with her but can't touch your PC.
+
+## Mac and Linux
+
+She runs on macOS and Linux too (`npm start`, same setup as below with Ollama from ollama.com).
+Works there: her chat, her body on your desktop, screen looks, opening apps (Mac `/Applications`, Linux
+app-menu entries, Steam games), music and volume (Mac: Spotify or Apple Music; Linux: `playerctl` and
+`pactl`), lock, shut down / restart / sleep, weather, web search, reminders, files (your home folder only),
+Ty Live. **Windows only for now**: typing into apps, Discord mute/deafen and messages, moving windows
+between monitors, minimise-all, game mode and sitting on your windows. Linux needs a compositor for her
+see-through window. Not tested on a real Mac or Linux box yet, so tell me what breaks.
+Builds: `npm run dist:mac` on a Mac (.dmg), `npm run dist:linux` on Linux (AppImage and .deb).
 
 ## Setup (Windows 10/11)
 

@@ -35,7 +35,10 @@ const DEFAULTS = {
   customApps: [],    // apps you named yourself in the Deck: [{ name, aliases, path, args }]
   chatSkin: 'holocall', // his chat window's look
   skin: '',          // his own look: a folder in %APPDATA%\ty-desktop\skins ('' = Capri's pictures)
-  startupSet: false, // starting with Windows turned on once (main.js); after that the Deck's switch decides
+  live: false,       // Ty Live: her chat and video on your network (live.js)
+  liveChat: true,    // ...and viewers can talk to her (talk only, never PC actions)
+  liveKey: '',       // the secret in its links (made when it's first turned on)
+  startupSet: false,// starting with Windows turned on once (main.js); after that the Deck's switch decides
   reminders: [],     // "remind me in 20 min to…": [{ at (ms), text }], fired by main.js
   watch: false,      // he glances at your screen now and then and says something about it
   watchEvery: 5,     // minutes between glances

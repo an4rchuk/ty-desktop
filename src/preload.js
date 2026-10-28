@@ -61,6 +61,7 @@ contextBridge.exposeInMainWorld('host', {
   fileSave: (file, content, overwrite) => ipcRenderer.invoke('files:save', { file, content, overwrite }),
   appAct: (app, text, keys) => ipcRenderer.invoke('control:act', { app, text, keys }),
   mirror: (update) => ipcRenderer.send('chat:mirror', update),
+  liveRect: (rect) => ipcRenderer.send('live:rect', rect),
   openChatWindow: () => ipcRenderer.send('chatwin:open'),
   openDeck: () => ipcRenderer.send('deck:open'),
   weather: (city) => ipcRenderer.invoke('pc:weather', city),

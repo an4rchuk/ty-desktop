@@ -104,26 +104,41 @@ if ($min) { [void][Ty.Fg]::ShowWindow($d.MainWindowHandle, 6) }
 
 // ---------- the PC itself ----------
 
+const detach = (cmd, args) => new Promise((resolve) => {
+  const child = spawn(cmd, args, { detached: true, stdio: 'ignore' });
+  child.on('error', () => resolve(false));
+  child.on('spawn', () => { child.unref(); resolve(true); });
+});
+
 async function lock() {
-  spawn('rundll32.exe', ['user32.dll,LockWorkStation'], { detached: true, stdio: 'ignore' }).unref();
-  return { ok: true, text: 'locked' };
+  // Mac: the screen off (locked when "require password" is on); Linux: the session's own lock
+  const ok = process.platform === 'darwin' ? await detach('pmset', ['displaysleepnow'])
+    : !WIN ? (await detach('loginctl', ['lock-session'])) || (await detach('xdg-screensaver', ['lock']))
+      : await detach('rundll32.exe', ['user32.dll,LockWorkStation']);
+  return ok ? { ok: true, text: 'locked' } : { ok: false, text: 'couldn’t lock it on this system' };
 }
 
 async function windows(how) {
+  if (!WIN) return { ok: false, text: 'minimising everything only works on Windows for now' };
   await ps(`(New-Object -ComObject Shell.Application).${how === 'restore' ? 'UndoMinimizeALL' : 'MinimizeAll'}()`);
   return { ok: true, text: how === 'restore' ? 'windows back' : 'everything minimised' };
 }
 
 // shut down, restart, sleep: only from his button (chat.js), never on the model's word
 async function power(action) {
-  const cmd = {
+  const mac = (verb) => ['osascript', ['-e', `tell application "System Events" to ${verb}`]];
+  const cmd = (process.platform === 'darwin' ? {
+    shutdown: mac('shut down'), restart: mac('restart'), sleep: mac('sleep'),
+  } : !WIN ? {
+    shutdown: ['systemctl', ['poweroff']], restart: ['systemctl', ['reboot']], sleep: ['systemctl', ['suspend']],
+  } : {
     shutdown: ['shutdown.exe', ['/s', '/t', '5']],
     restart: ['shutdown.exe', ['/r', '/t', '5']],
     sleep: ['rundll32.exe', ['powrprof.dll,SetSuspendState', '0,1,0']],
-  }[action];
+  })[action];
   if (!cmd) return { ok: false, text: 'unknown' };
-  spawn(cmd[0], cmd[1], { detached: true, stdio: 'ignore' }).unref();
-  return { ok: true, text: action === 'sleep' ? 'going to sleep' : `${action === 'restart' ? 'restarting' : 'shutting down'} in 5 seconds` };
+  if (!(await detach(cmd[0], cmd[1]))) return { ok: false, text: `couldn’t ${action} on this system` };
+  return { ok: true, text: action === 'sleep' ? 'going to sleep' : `${action === 'restart' ? 'restarting' : 'shutting down'}${WIN ? ' in 5 seconds' : ''}` };
 }
 
 // ---------- moving a window to another monitor ----------
