@@ -73,14 +73,7 @@ USB stick and double-click **Start Ty.cmd** on any Windows PC. `-Fresh` leaves y
 - Deck › Character › **Skin**: swap her art for your own drawings (it makes a folder with every picture to
   draw over, plus a README of the sizes).
 
-## Licence and credits
+## Is this a real project?
 
-The code is under the [PolyForm Noncommercial License 1.0.0](LICENSE) (Required Notice: Copyright (c) 2026
-mochiiwuff, https://github.com/mochiiwuff/capri-desktop). Use it, change it, share it, **never sell it**.
-
-Capri / Project Capricorn, Cyberpunk and Cyberpunk: Edgerunners belong to CD PROJEKT RED, Studio Trigger and
-Netflix. This is a non-commercial fan project with no affiliation. The character images in `assets/capri/`
-and `docs/` are **not** covered by the code's licence (see [Capri's README](docs/capri/README.md)).
-
-The models are made by their own authors (Qwen by Alibaba; the "abliterated" versions by huihui-ai) under
-their own licences. Ty's swearing is a personality, not a promise she's right: double-check anything important.
+Yes this is a real project. Ty is an independent, unofficial fan project with a cyberpunk aesthetic with the character design of Capri, inspired by Cyberpunk: Edgerunners. 
+It is not affiliated with or endorsed by CD PROJEKT RED, Studio Trigger, Netflix or any other rights holder.
